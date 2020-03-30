@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <% include partials/head %>
+
+  <body>
+    <% include partials/nav %>
+
+    <div class="container">
+      <h4>
+        <%= title %>
+      </h4>
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Name</th>
+            <th>Starts</th>
+            <th>Ends</th>
+            <th>Actor</th>
+            <th>Actor Options</th>
+          </tr>
+        </thead>
+        <%
+        const options = { year: 'numeric', month: 'short', day: 'numeric', hour:'numeric', minute:'numeric', hour12:false};
+        for (let i = 0; i < activity.actions().length; i++){
+      %>
+        <tr>
+          <td>
+            <%= activity.actions()[i].type %>
+          </td>
+          <td>
+            <%= activity.actions()[i].name %>
+          </td>
+          <td>
+            <%= activity.actions()[i].start?new Date(activity.actions()[i].start).toLocaleDateString('de-DE', options):'' %>
+          </td>
+          <td>
+            <%= activity.actions()[i].end?new Date(activity.actions()[i].end).toLocaleDateString('de-DE', options):'' %>
+          </td>
+          <td>
+            <%= activity.actions()[i].actorChosen %>
+          </td>
+          <td>
+            <%= JSON.stringify(activity.actions()[i].actorOptions) %>
+          </td>
+        </tr>
+        <% } %>
+      </table>
+    </div>
+  </body>
+
+</html>

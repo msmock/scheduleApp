@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<% include partials/head %>
+
+<body>
+  <% include partials/nav %>
+
+  <div class="row">
+  </div>
+  <div class="row">
+    <svg class="row col s12" id="gantt" />
+  </div>
+
+</body>
+
+<script src="../javascripts/snap.svg-min.js"></script>
+<script src="../javascripts/date.js"></script>
+
+<script>
+  window.onload = function() {
+
+    // called on load
+    refresh();
+
+    // load data from app
+    function refresh() {
+
+      var xhttp = new XMLHttpRequest();
+      xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          const actions = JSON.parse(this.responseText);
+          render(actions);
+        }
+      };
+
+      xhttp.open("GET", "http://localhost:3000/api/actions", true);
+      xhttp.setRequestHeader("Content-type", "application/json");
+      xhttp.send();
+    }
+
+    //
+    function render(actions) {
+
+      // the draw stuff
+      const paperOpt = {
+        fill: "#FFFFFF",
+        stroke: "#A0A0A0",
+        strokeWidth: 0.5
+      };
+
+      const cellOptEven = {
+        fill: "#FFFFFF",
+        stroke: "#A0A0A0",
+        strokeWidth: 0.5,
+        "fill-opacity": 0.5
+      };
+
+      const cellOptOdd = {
+        fill: "#F0F0F0",
+        stroke: "#A0A0A0",
+        strokeWidth: 0.5,
+        "fill-opacity": 0.5
+      };
+
+      const tickOpt = {
+        fill: "#F0F0F0",
+        stroke: "#A0A0A0",
+        strokeWidth: 1,
+        "fill-opacity": 0.5
+      };
+
+      const actionSymbolOpt = {
+        fill: "#00695c",
+        stroke: "#00695c",
+        strokeWidth: 0.5,
+        "fill-opacity": 0.5
+      };
+
+      const txtOpt = {
+        'font-size': 9,
+        'font-family': '"Helvetica", Helvetica, Sans-serif',
+        fill: "#404040"
+      };
+
+      // prepare object to iterate
+      const actors = [];
+      for (let action of actions) {
+        let item = action.actorChosen;
+        if (!actors.includes(item))
+          actors.push(item);
+      }
+
+      const map = new Map();
+      for (let actor of actors) {
+        map.set(actor, actions.filter(action => action.actorChosen === actor));
+      }
+
+      // the base settings
+      const headerHeight = 40;
+      const rowHeight = 25;
+      const labelWidth = 100;
+      const textX = 10;
+      const textY = rowHeight / 2 + 5; // half the row plus half the text size
+
+      const totalWidth = 800;
+      const innerHeight = actors.length * rowHeight;
+      const totalHeight = Math.max(innerHeight + headerHeight, 800);
+
+      // TBD: improve. The actual draw area for the actions is scaled down and translated
+      const drawAreaScale = 0.9;
+      const drawAreaTranslate = 25;
+
+      // the outer paper to draw to
+      const paper = Snap("#gantt");
+      paper.attr({
+        viewBox: [0, 0, totalWidth, totalHeight]
+      });
+
+      // calculate the time span
+      const earliest = Math.min(...actions.map(action => action.start));
+      const latest = Math.max(...actions.map(action => action.end));
+      const span = latest - earliest;
+
+      // determine the time scale resolution
+      let res = new Object();
+      if ((res.count = Math.floor(span / (1000 * 60 * 60 * 24 * 365))) > 0) {
+        res.unit = 'years';
+      } else if ((res.count = Math.floor(span / (1000 * 60 * 60 * 24 * 30))) > 0) {
+        res.unit = 'months';
+      } else if ((res.count = Math.floor(span / (1000 * 60 * 60 * 24 * 7))) > 0) {
+        res.unit = 'weeks';
+      } else if ((res.count = Math.floor(span / (1000 * 60 * 60 * 24))) > 0) {
+        res.unit = 'days';
+      } else if ((res.count = Math.floor(span / (1000 * 60 * 60))) > 0) {
+        res.unit = 'hours';
+      } else if ((res.count = Math.floor(span / (1000 * 60))) > 0) {
+        res.unit = 'minutes';
+      } else {
+        res.unit = 'seconds';
+        res.count = Math.floor(span / 1000);
+      }
+
+      console.log('resolution is %s %s', res.count, res.unit);
+
+      // the scale for actions
+      const range = totalWidth - labelWidth;
+      const scale = range / span;
+
+      // add the cell to draw time ticks to
+      const headerCell = paper.g();
+      headerCell.append(paper.rect(0, 0, range, headerHeight, 2, 2).attr(cellOptEven));
+      headerCell.transform('translate(' + labelWidth + ' 0)');
+
+      const tickDrawArea = paper.g();
+      headerCell.append(tickDrawArea);
+      tickDrawArea.transform('scale(' + drawAreaScale + ' 1) translate(' + drawAreaTranslate + ' 0)');
+
+      // draw ticks and date text
+      const dateY = headerHeight - 4;
+
+      // iterate 'till we are out of range
+      if (res.unit === 'minutes') {
+
+        let date = new Date(earliest).at({
+          minute: 0,
+          second: 0
+        });
+
+        do {
+          date.add(1).minute();
+          let time = date.getTime();
+          if (time >= earliest && time < latest) {
+            const x = (time - earliest) * scale;
+            tickDrawArea.append(paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt));
+            tickDrawArea.append(paper.text(x - 10, dateY, date.toString('mm')).attr(txtOpt));
+          }
+        } while (date.getTime() < latest);
+
+      } else if (res.unit === 'hours') {
+
+        let date = new Date(earliest).at({
+          minute: 0,
+          second: 0
+        });
+
+        do {
+          date.add(1).hour();
+          let time = date.getTime();
+          if (time >= earliest && time < latest) {
+            const x = (time - earliest) * scale;
+            tickDrawArea.append(paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt));
+            tickDrawArea.append(paper.text(x - 10, dateY, date.toString('HH:mm')).attr(txtOpt));
+          }
+        } while (date.getTime() < latest);
+
+      } else if (res.unit === 'days') {
+
+        let date = new Date(earliest).at({
+          hour: 0,
+          minute: 0,
+          second: 0
+        });
+
+        do {
+          date.add(1).day();
+          let time = date.getTime();
+          if (time >= earliest && time < latest) {
+            const x = (time - earliest) * scale;
+            tickDrawArea.append(paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt));
+            tickDrawArea.append(paper.text(x - 10, dateY, date.toString('dd.MM')).attr(txtOpt));
+          }
+        } while (date.getTime() < latest);
+
+      } else if (res.unit === 'weeks') {
+
+        let date = new Date(earliest).at({
+          day: 1,
+          hour: 0,
+          minute: 0
+        });
+
+        do {
+          date.add(1).week();
+          let time = date.getTime();
+          if (time >= earliest && time < latest) {
+            const x = (time - earliest) * scale;
+            tickDrawArea.append(paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt));
+            tickDrawArea.append(paper.text(x - 10, dateY, date.toString('dd.MM')).attr(txtOpt));
+          }
+        } while (date.getTime() < latest);
+
+      } else if (res.unit === 'months') {
+
+        let date = new Date(earliest).at({
+          minute: 0,
+          hour: 0,
+          day: 1
+        });
+
+        do {
+          date.add(1).month();
+          let time = date.getTime();
+          if (time >= earliest && time < latest) {
+            const x = (time - earliest) * scale;
+            tickDrawArea.append(paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt));
+            tickDrawArea.append(paper.text(x - 10, dateY, date.toString('MM.yyyy')).attr(txtOpt));
+          }
+        } while (date.getTime() < latest);
+
+      }
+
+      // iterate the actors
+      let vShift = headerHeight;
+      let rowIndex = 0;
+
+      for (let actor of actors) {
+
+        let cellOption = rowIndex % 2 ? cellOptEven : cellOptOdd;
+        let actionOnActor = map.get(actor); // array of actions
+
+        // a new row
+        const row = paper.g();
+        row.transform('translate(0 ' + vShift + ')');
+
+        // add the cell with the row label
+        const labelCell = paper.g();
+        labelCell.append(paper.rect(0, 0, labelWidth, rowHeight, 2, 2).attr(cellOption));
+        labelCell.append(paper.text(textX, textY, actor).attr(txtOpt));
+        row.append(labelCell);
+
+        // add the cell to draw actions to
+        const actionCell = paper.g();
+        actionCell.append(paper.rect(0, 0, range, rowHeight, 2, 2).attr(cellOption));
+        actionCell.transform('translate(' + labelWidth + ' 0)');
+        row.append(actionCell);
+
+        // we draw only to an area of the data cell, thus
+        const drawArea = paper.g();
+        drawArea.transform('scale(' + drawAreaScale + ' 1) translate(' + drawAreaTranslate + ' 0)');
+        actionCell.append(drawArea);
+
+        for (let action of actionOnActor) {
+
+          // coordinates (x,y,width, height)
+          const x = (action.start - earliest) * scale;
+          const width = Math.max((action.end - action.start) * scale, 2);
+
+          const actionSymbol = paper.rect(x, 8, width, 9, 2, 2).attr(actionSymbolOpt);
+          actionSymbol.node.source = action;
+
+          const startDate = new Date(action.start).toString('d.M.yyyy HH:mm');
+          const endDate = new Date(action.end).toString('d.M.yyyy HH:mm');
+          const title = Snap.parse('<title>Action: \nName: ' + action.name +
+            '\nStart: ' + startDate + '\nEnd: ' + endDate + '\nPath: ' + action.locator + '</title>');
+          actionSymbol.append(title);
+
+          drawArea.append(actionSymbol);
+
+        }
+
+        vShift += rowHeight;
+        rowIndex += 1;
+      }
+    };
+  };
+</script>
+
+</html>

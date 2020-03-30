@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<% include partials/head %>
+
+<body>
+  <% include partials/nav %>
+
+  <div class="container">
+    <h4>
+      <%= title %>
+    </h4>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Ordering</th>
+          <th>Starts</th>
+          <th>Ends</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%
+        const options = { year: 'numeric', month: 'short', day: 'numeric', hour:'numeric', minute:'numeric', hour12:false};
+        for (let i = 0; i < activities.length; i++){
+        %>
+        <tr>
+          <td>
+            <a href="activity?name=<%= activities[i].name %>">
+              <%= activities[i].name %></a>
+          </td>
+          <td>
+            <%= activities[i].ordering %>
+          </td>
+          <td>
+            <%= activities[i].start?new Date(activities[i].start).toLocaleDateString('de-DE', options):'' %>
+          </td>
+          <td>
+            <%= activities[i].end?new Date(activities[i].end).toLocaleDateString('de-DE', options):'' %>
+          </td>
+          <!-- the action link -->
+          <% if (activities[i].start && activities[i].end) { %>
+          <td>
+            <a class="modal-trigger" href="#releaseModal<%=activities[i].name%>">Release</a>
+          </td>
+          <% } else { %>
+          <td>
+            <a class="modal-trigger" href="activity?name=<%= activities[i].name %>&action=scheduleDialog">Schedule</a>
+          </td>
+          <% }; %>
+        </tr>
+
+        <!-- Modal  -->
+        <div id="releaseModal<%=activities[i].name%>" class="modal">
+          <div class="modal-content">
+            <h4>Release:</h4>
+            <p>Rollback the schedule of activity
+              <%=activities[i].name%>?</p>
+          </div>
+          <div class="modal-footer">
+            <a href="/activities" class="modal-close waves-effect waves-green btn-flat">Cancel</a>
+            <a href="/activity?name=<%=activities[i].name%>&action=release" class="btn-flat">Release</a>
+          </div>
+        </div>
+
+        <% } %>
+        <!-- end for loop -->
+
+      </tbody>
+    </table>
+  </div>
+</body>
+
+<script>
+  const modalOpts = {};
+  document.addEventListener('DOMContentLoaded', function() {
+    var elems = document.querySelectorAll('.modal');
+    var instances = M.Modal.init(elems, modalOpts);
+  });
+</script>
+
+<!--JavaScript at end of body for optimized loading-->
+<script type="text/javascript" src="javascripts/materialize.min.js"></script>
+
+</html>

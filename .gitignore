@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.DS_Store
+TODO.txt
+package-lock.json
+*.png
+*.jpg

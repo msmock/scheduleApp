@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <% include partials/head %>
+
+  <body>
+    <% include partials/nav %>
+
+    <div class="container">
+      <h4>
+        <%= title %>
+      </h4>
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tr>
+        <%
+        const options = { year: 'numeric', month: 'short', day: 'numeric', hour:'numeric', minute:'numeric', hour12:false};
+        for (let i = 0; i < state.timeline.length; i++){ %>
+        <tr>
+          <td>
+            <%= new Date(state.timeline[i].time).toLocaleDateString('de-DE', options) %>
+          </td>
+          <td>
+            <%= JSON.stringify(state.timeline[i].value)  %>
+          </td>
+        </tr>
+        <% } %>
+      </table>
+    </div>
+  </body>
+
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <% include partials/head %>
+
+  <body>
+    <% include partials/nav %>
+
+    <div class="container">
+      <h4>
+        <%= title %>
+      </h4>
+      <p>
+        Schedule selected activity:
+      </p>
+      <p>
+        <form action="/activity">
+
+          <input type="hidden" name="name" value="<%= activity.name %>">
+          <input type="hidden" name="action" value="schedule">
+
+          <!-- the mode selection -->
+          <p>
+            <label>
+              <input name="mode" type="radio" value="ASAP" checked />
+              <span>ASAP</span>
+            </label>
+          </p>
+          <p>
+            <label>
+              <input name="mode" type="radio" value="JIT" />
+              <span>JIT</span>
+            </label>
+          </p>
+
+          <!-- the date selection -->
+          <p>
+            <input id="date" name="date" type="text" class="datepicker" />
+            <label for="date">Date</label>
+          </p>
+          <p>
+            <input id="time" name="time" type="text" class="timepicker" />
+            <label for="time">Time</label>
+          </p>
+
+          <input class="waves-effect waves-light btn" type="submit" value="Submit">
+
+        </form>
+        <p></p>
+    </div>
+  </body>
+
+  <script>
+    const dateOptions = {
+      defaultDate: new Date(),
+      setDefaultDate: true,
+      format: 'yyyy-mm-dd'
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var elems = document.querySelectorAll('.datepicker');
+      var instances = M.Datepicker.init(elems, dateOptions);
+    });
+
+    const timeOptions = {
+      twelveHour: false
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var elems = document.querySelectorAll('.timepicker');
+      var instances = M.Timepicker.init(elems, timeOptions);
+    });
+  </script>
+
+  <!--JavaScript at end of body for optimized loading-->
+  <script type="text/javascript" src="javascripts/materialize.min.js"></script>
+
+</html>
