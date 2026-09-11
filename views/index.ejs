@@ -1,9 +1,29 @@
 <!DOCTYPE html>
 <html>
-  <% include partials/head %>
 
-  <body>
-    <% include partials/nav %>
+<head>
+  <title>
+    <%= title %>
+  </title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="stylesheets/materialize.min.css" type="text/css" rel="stylesheet" media="screen,projection" />
+</head>
+
+<body>
+
+<nav>
+  <div class="nav-wrapper">
+    <a href="#" class="brand-logo">&nbsp;&nbsp;Demo App</a>
+    <ul id="nav-mobile" class="right hide-on-med-and-down">
+      <li><a href="activities">Activities</a></li>
+      <li><a href="actors">Actors</a></li>
+      <li><a href="/gantt">Gantt</a></li>
+      <li><a href="/index">Index</a></li>
+    </ul>
+  </div>
+</nav>
 
     <div class="container">
       <h4>
@@ -13,6 +33,7 @@
         A test application for scheduling using the capacity planning toolbox.
       </p>
     </div>
-  </body>
+
+</body>
 
 </html>

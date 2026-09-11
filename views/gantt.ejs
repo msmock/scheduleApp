@@ -1,15 +1,35 @@
 <!DOCTYPE html>
 <html>
-<% include partials/head %>
+<head>
+  <title>
+    <%= title %>
+  </title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="stylesheets/materialize.min.css" type="text/css" rel="stylesheet" media="screen,projection" />
+</head>
 
 <body>
-  <% include partials/nav %>
+
+<nav>
+  <div class="nav-wrapper">
+    <a href="#" class="brand-logo">&nbsp;&nbsp;Demo App</a>
+    <ul id="nav-mobile" class="right hide-on-med-and-down">
+      <li><a href="activities">Activities</a></li>
+      <li><a href="actors">Actors</a></li>
+      <li><a href="/gantt">Gantt</a></li>
+      <li><a href="/index">Index</a></li>
+    </ul>
+  </div>
+</nav>
 
   <div class="row">
   </div>
   <div class="row">
     <svg class="row col s12" id="gantt" />
   </div>
+</div>
 
 </body>
 
@@ -121,8 +141,8 @@
       const latest = Math.max(...actions.map(action => action.end));
       const span = latest - earliest;
 
-      // determine the time scale resolution
-      let res = new Object();
+      // determine the timescale resolution
+      let res = {};
       if ((res.count = Math.floor(span / (1000 * 60 * 60 * 24 * 365))) > 0) {
         res.unit = 'years';
       } else if ((res.count = Math.floor(span / (1000 * 60 * 60 * 24 * 30))) > 0) {
@@ -167,14 +187,17 @@
         });
 
         do {
-          date.add(1).minute();
+
           let time = date.getTime();
           if (time >= earliest && time < latest) {
             const x = (time - earliest) * scale;
             tickDrawArea.append(paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt));
             tickDrawArea.append(paper.text(x - 10, dateY, date.toString('mm')).attr(txtOpt));
           }
-        } while (date.getTime() < latest);
+
+          date.add(1).minute();
+
+        } while (date.getTime() <= latest);
 
       } else if (res.unit === 'hours') {
 
@@ -184,14 +207,17 @@
         });
 
         do {
-          date.add(1).hour();
+
           let time = date.getTime();
-          if (time >= earliest && time < latest) {
+          if (time >= earliest && time <= latest) {
             const x = (time - earliest) * scale;
             tickDrawArea.append(paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt));
             tickDrawArea.append(paper.text(x - 10, dateY, date.toString('HH:mm')).attr(txtOpt));
           }
-        } while (date.getTime() < latest);
+
+          date.add(1).hour();
+
+        } while (date.getTime() <= latest);
 
       } else if (res.unit === 'days') {
 
@@ -202,14 +228,17 @@
         });
 
         do {
-          date.add(1).day();
+
           let time = date.getTime();
-          if (time >= earliest && time < latest) {
+          if (time >= earliest && time <= latest) {
             const x = (time - earliest) * scale;
             tickDrawArea.append(paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt));
             tickDrawArea.append(paper.text(x - 10, dateY, date.toString('dd.MM')).attr(txtOpt));
           }
-        } while (date.getTime() < latest);
+
+          date.add(1).day();
+
+        } while (date.getTime() <= latest);
 
       } else if (res.unit === 'weeks') {
 
@@ -220,14 +249,17 @@
         });
 
         do {
-          date.add(1).week();
+
           let time = date.getTime();
-          if (time >= earliest && time < latest) {
+          if (time >= earliest && time <= latest) {
             const x = (time - earliest) * scale;
             tickDrawArea.append(paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt));
             tickDrawArea.append(paper.text(x - 10, dateY, date.toString('dd.MM')).attr(txtOpt));
           }
-        } while (date.getTime() < latest);
+
+          date.add(1).week();
+
+        } while (date.getTime() <= latest);
 
       } else if (res.unit === 'months') {
 
@@ -238,14 +270,17 @@
         });
 
         do {
-          date.add(1).month();
+
           let time = date.getTime();
-          if (time >= earliest && time < latest) {
+          if (time >= earliest && time <= latest) {
             const x = (time - earliest) * scale;
             tickDrawArea.append(paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt));
             tickDrawArea.append(paper.text(x - 10, dateY, date.toString('MM.yyyy')).attr(txtOpt));
           }
-        } while (date.getTime() < latest);
+
+          date.add(1).month();
+
+        } while (date.getTime() <= latest);
 
       }
 
