@@ -102,17 +102,15 @@
         fill: "#404040"
       };
 
-      // prepare object to iterate
-      const actors = [];
-      for (let action of actions) {
-        let item = action.actorChosen;
-        if (!actors.includes(item))
-          actors.push(item);
-      }
+      // list all actors that are assigned to an action
+      const actors = [...new Set(actions.map(action => action.actorChosen))];
 
-      const map = new Map();
-      for (let actor of actors) {
-        map.set(actor, actions.filter(action => action.actorChosen === actor));
+      // create map of actors and actions on it
+      const actionsOnActor = new Map();
+      for (const action of actions) {
+        const actor = action.actorChosen;
+        if (!actionsOnActor.has(actor)) actionsOnActor.set(actor, []);
+        actionsOnActor.get(actor).push(action);
       }
 
       // the base settings
@@ -291,7 +289,7 @@
       for (let actor of actors) {
 
         let cellOption = rowIndex % 2 ? cellOptEven : cellOptOdd;
-        let actionOnActor = map.get(actor); // array of actions
+        let actionOnActor = actionsOnActor.get(actor); // array of actions
 
         // a new row
         const row = paper.g();
