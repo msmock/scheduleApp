@@ -85,7 +85,9 @@
 
         refresh();
 
-        // get fresh data from the server
+        /**
+         * get fresh data from the server
+         */
         function refresh() {
             const xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
@@ -98,8 +100,10 @@
             xhttp.send();
         }
 
-        // find the time unit to use for labeling the Gantt chart's axis —
-        // largest unit that gives at least 1 whole tick over the given time span.
+        /**
+        * find the time unit to use for labeling the Gantt chart's axis —
+        * largest unit that gives at least 1 whole tick over the given time span.
+        **/
         function getResolution(span) {
             for (const {unit, ms} of RESOLUTIONS) {
                 if (span >= ms) return {unit};
@@ -107,8 +111,32 @@
             return {unit: 'seconds', count: Math.floor(span / 1000)};
         }
 
+        /**
+         * get the earliest and latest time to be shown in the gantt
+         * from the earliest and latest times of the values.
+         *
+         * @returns {{earliest: number, latest: number, span: number}}
+         */
+        function getTimeRange(actions) {
 
-        // draw the tick lines and labels
+            const earliest = Math.min(...actions.map(a => a.start));
+            const latest = Math.max(...actions.map(a => a.end));
+            const span = latest - earliest;
+
+            // show a little padding beyond the actual action times
+            const padding = 0.05 * span;
+
+            return {
+                earliest: earliest - padding,
+                latest: latest + padding,
+                span: span * 1.1, // padded on both sides, so span grows by 2 × 5%
+            };
+        }
+
+
+        /**
+         * draw the tick lines and labels
+         */
         function drawTicks(paper, tickDrawArea, res, earliest, latest, scale, dateY, innerHeight) {
 
             const config = TICK_CONFIG[res.unit];
@@ -127,7 +155,9 @@
             }
         }
 
-
+        /**
+         * render the resource gantt
+         */
         function render(actions) {
 
             // unique actors, and a map of actor -> their actions
@@ -145,14 +175,9 @@
             const paper = Snap("#gantt");
             paper.attr({viewBox: [0, 0, totalWidth, totalHeight]});
 
-            // earliest and latest time used in actions
-            const earliest = Math.min(...actions.map(a => a.start));
-            const latest = Math.max(...actions.map(a => a.end));
-            const span = latest - earliest;
+            let {earliest, latest, span} = getTimeRange(actions);
 
             const res = getResolution(span);
-            console.log('resolution is %s', res.unit);
-
             const range = totalWidth - labelWidth;
             const scale = range / span;
 
@@ -164,7 +189,7 @@
             // area to draw tick lines to
             const tickDrawArea = paper.g();
             headerCell.append(tickDrawArea);
-            tickDrawArea.transform(`scale(${drawAreaScale} 1) translate(${drawAreaTranslate} 0)`);
+            // tickDrawArea.transform(`scale(${drawAreaScale} 1) translate(${drawAreaTranslate} 0)`);
 
             const dateY = headerHeight - 4;
             drawTicks(paper, tickDrawArea, res, earliest, latest, scale, dateY, innerHeight);
@@ -190,7 +215,7 @@
                 row.append(actionCell);
 
                 const drawArea = paper.g();
-                drawArea.transform(`scale(${drawAreaScale} 1) translate(${drawAreaTranslate} 0)`);
+                // drawArea.transform(`scale(${drawAreaScale} 1) translate(${drawAreaTranslate} 0)`);
                 actionCell.append(drawArea);
 
                 for (const action of actorActions) {
