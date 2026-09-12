@@ -5,3 +5,4 @@ TODO.txt
 package-lock.json
 *.png
 *.jpg
+.idea
