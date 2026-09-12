@@ -1,100 +1,87 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>
-    <%= title %>
-  </title>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0" />
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <link href="stylesheets/materialize.min.css" type="text/css" rel="stylesheet" media="screen,projection" />
-</head>
-
+<%- include('./partials/head.ejs') %>
 <body>
-
-<nav>
-  <div class="nav-wrapper">
-    <a href="#" class="brand-logo">&nbsp;&nbsp;Demo App</a>
-    <ul id="nav-mobile" class="right hide-on-med-and-down">
-      <li><a href="activities">Activities</a></li>
-      <li><a href="actors">Actors</a></li>
-      <li><a href="/gantt">Gantt</a></li>
-      <li><a href="/index">Index</a></li>
-    </ul>
-  </div>
-</nav>
-  <div class="container">
+<%- include('./partials/nav.ejs') %>
+<div class="container">
     <h4>
-      <%= title %>
+        <%= title %>
     </h4>
     <table>
-      <thead>
+        <thead>
         <tr>
-          <th>Name</th>
-          <th>Ordering</th>
-          <th>Starts</th>
-          <th>Ends</th>
-          <th>Action</th>
+            <th>Name</th>
+            <th>Ordering</th>
+            <th>Starts</th>
+            <th>Ends</th>
+            <th>Action</th>
         </tr>
-      </thead>
-      <tbody>
+        </thead>
+        <tbody>
         <%
-        const options = { year: 'numeric', month: 'short', day: 'numeric', hour:'numeric', minute:'numeric', hour12:false};
+        const options = {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: false
+        };
         for (let i = 0; i < activities.length; i++){
         %>
-        <tr>
-          <td>
-            <a href="activity?name=<%= activities[i].name %>">
-              <%= activities[i].name %></a>
-          </td>
-          <td>
-            <%= activities[i].ordering %>
-          </td>
-          <td>
-            <%= activities[i].start?new Date(activities[i].start).toLocaleDateString('de-DE', options):'' %>
-          </td>
-          <td>
-            <%= activities[i].end?new Date(activities[i].end).toLocaleDateString('de-DE', options):'' %>
-          </td>
-          <!-- the action link -->
-          <% if (activities[i].start && activities[i].end) { %>
-          <td>
-            <a class="modal-trigger" href="#releaseModal<%=activities[i].name%>">Release</a>
-          </td>
-          <% } else { %>
-          <td>
-            <a class="modal-trigger" href="activity?name=<%= activities[i].name %>&action=scheduleDialog">Schedule</a>
-          </td>
-          <% }; %>
-        </tr>
+            <tr>
+                <td>
+                    <a href="activity?name=<%= activities[i].name %>">
+                        <%= activities[i].name %></a>
+                </td>
+                <td>
+                    <%= activities[i].ordering %>
+                </td>
+                <td>
+                    <%= activities[i].start ? new Date(activities[i].start).toLocaleDateString('de-DE', options) : '' %>
+                </td>
+                <td>
+                    <%= activities[i].end ? new Date(activities[i].end).toLocaleDateString('de-DE', options) : '' %>
+                </td>
+                <!-- the action link -->
+                <% if (activities[i].start && activities[i].end) { %>
+                <td>
+                    <a class="modal-trigger" href="#releaseModal<%= activities[i].name %>">Release</a>
+                </td>
+                <% } else { %>
+                    <td>
+                        <a class="modal-trigger" href="activity?name=<%= activities[i].name %>&action=scheduleDialog">Schedule</a>
+                    </td>
+                <% }; %>
+            </tr>
 
-        <!-- Modal  -->
-        <div id="releaseModal<%=activities[i].name%>" class="modal">
-          <div class="modal-content">
-            <h4>Release:</h4>
-            <p>Rollback the schedule of activity
-              <%=activities[i].name%>?</p>
-          </div>
-          <div class="modal-footer">
-            <a href="/activities" class="modal-close waves-effect waves-green btn-flat">Cancel</a>
-            <a href="/activity?name=<%=activities[i].name%>&action=release" class="btn-flat">Release</a>
-          </div>
-        </div>
+            <!-- Modal  -->
+            <div id="releaseModal<%= activities[i].name %>" class="modal">
+                <div class="modal-content">
+                    <h4>Release:</h4>
+                    <p>Rollback the schedule of activity
+                        <%= activities[i].name %>?</p>
+                </div>
+                <div class="modal-footer">
+                    <a href="/activities" class="modal-close waves-effect waves-green btn-flat">Cancel</a>
+                    <a href="/activity?name=<%= activities[i].name %>&action=release" class="btn-flat">Release</a>
+                </div>
+            </div>
 
         <% } %>
         <!-- end for loop -->
 
-      </tbody>
+        </tbody>
     </table>
-  </div>
+</div>
 </body>
 
 <script>
-  const modalOpts = {};
-  document.addEventListener('DOMContentLoaded', function() {
-    var elems = document.querySelectorAll('.modal');
-    var instances = M.Modal.init(elems, modalOpts);
-  });
+    const modalOpts = {};
+    document.addEventListener('DOMContentLoaded', function () {
+        var elems = document.querySelectorAll('.modal');
+        var instances = M.Modal.init(elems, modalOpts);
+    });
 </script>
 
 <!--JavaScript at end of body for optimized loading-->

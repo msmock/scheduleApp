@@ -1,71 +1,58 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>
-    <%= title %>
-  </title>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0" />
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <link href="stylesheets/materialize.min.css" type="text/css" rel="stylesheet" media="screen,projection" />
-</head>
-
+<%- include('./partials/head.ejs') %>
 <body>
+<%- include('./partials/nav.ejs') %>
 
-<nav>
-  <div class="nav-wrapper">
-    <a href="#" class="brand-logo">&nbsp;&nbsp;Demo App</a>
-    <ul id="nav-mobile" class="right hide-on-med-and-down">
-      <li><a href="activities">Activities</a></li>
-      <li><a href="actors">Actors</a></li>
-      <li><a href="/gantt">Gantt</a></li>
-      <li><a href="/index">Index</a></li>
-    </ul>
-  </div>
-</nav>
-
-    <div class="container">
-      <h4>
+<div class="container">
+    <h4>
         <%= title %>
-      </h4>
-      <table>
+    </h4>
+    <table>
         <thead>
-          <tr>
+        <tr>
             <th>Type</th>
             <th>Name</th>
             <th>Starts</th>
             <th>Ends</th>
             <th>Actor</th>
             <th>Actor Options</th>
-          </tr>
+        </tr>
         </thead>
         <%
-        const options = { year: 'numeric', month: 'short', day: 'numeric', hour:'numeric', minute:'numeric', hour12:false};
+        const options = {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: false
+        };
         for (let i = 0; i < activity.actions().length; i++){
-      %>
-        <tr>
-          <td>
-            <%= activity.actions()[i].type %>
-          </td>
-          <td>
-            <%= activity.actions()[i].name %>
-          </td>
-          <td>
-            <%= activity.actions()[i].start?new Date(activity.actions()[i].start).toLocaleDateString('de-DE', options):'' %>
-          </td>
-          <td>
-            <%= activity.actions()[i].end?new Date(activity.actions()[i].end).toLocaleDateString('de-DE', options):'' %>
-          </td>
-          <td>
-            <%= activity.actions()[i].actorChosen %>
-          </td>
-          <td>
-            <%= JSON.stringify(activity.actions()[i].actorOptions) %>
-          </td>
-        </tr>
+        %>
+            <tr>
+                <td>
+                    <%= activity.actions()[i].type %>
+                </td>
+                <td>
+                    <%= activity.actions()[i].name %>
+                </td>
+                <td>
+                    <%= activity.actions()[i].start ? new Date(activity.actions()[i].start).toLocaleDateString('de-DE', options) : '' %>
+                </td>
+                <td>
+                    <%= activity.actions()[i].end ? new Date(activity.actions()[i].end).toLocaleDateString('de-DE', options) : '' %>
+                </td>
+                <td>
+                    <%= activity.actions()[i].actorChosen %>
+                </td>
+                <td>
+                    <%= JSON.stringify(activity.actions()[i].actorOptions) %>
+                </td>
+            </tr>
         <% } %>
-      </table>
-    </div>
-  </body>
+    </table>
+</div>
+</body>
 
 </html>
