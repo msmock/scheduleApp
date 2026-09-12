@@ -1,34 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>
-    <%= title %>
-  </title>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0" />
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <link href="stylesheets/materialize.min.css" type="text/css" rel="stylesheet" media="screen,projection" />
+    <title><%= title %></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="stylesheets/materialize.min.css" type="text/css" rel="stylesheet" media="screen,projection"/>
 </head>
 
 <body>
 
 <nav>
-  <div class="nav-wrapper">
-    <a href="#" class="brand-logo">&nbsp;&nbsp;Demo App</a>
-    <ul id="nav-mobile" class="right hide-on-med-and-down">
-      <li><a href="activities">Activities</a></li>
-      <li><a href="actors">Actors</a></li>
-      <li><a href="/gantt">Gantt</a></li>
-      <li><a href="/index">Index</a></li>
-    </ul>
-  </div>
+    <div class="nav-wrapper">
+        <a href="#" class="brand-logo">&nbsp;&nbsp;Demo App</a>
+        <ul id="nav-mobile" class="right hide-on-med-and-down">
+            <li><a href="activities">Activities</a></li>
+            <li><a href="actors">Actors</a></li>
+            <li><a href="/gantt">Gantt</a></li>
+            <li><a href="/index">Index</a></li>
+        </ul>
+    </div>
 </nav>
 
-  <div class="row">
-  </div>
-  <div class="row">
-    <svg class="row col s12" id="gantt" />
-  </div>
+<div class="row">
+    <svg class="row col s12" id="gantt"/>
 </div>
 
 </body>
@@ -37,305 +32,187 @@
 <script src="../javascripts/date.js"></script>
 
 <script>
-  window.onload = function() {
-
-    // called on load
-    refresh();
-
-    // load data from app
-    function refresh() {
-
-      var xhttp = new XMLHttpRequest();
-      xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-          const actions = JSON.parse(this.responseText);
-          render(actions);
-        }
-      };
-
-      xhttp.open("GET", "http://localhost:3000/api/actions", true);
-      xhttp.setRequestHeader("Content-type", "application/json");
-      xhttp.send();
-    }
-
-    //
-    function render(actions) {
-
-      // the draw stuff
-      const paperOpt = {
-        fill: "#FFFFFF",
-        stroke: "#A0A0A0",
-        strokeWidth: 0.5
-      };
-
-      const cellOptEven = {
-        fill: "#FFFFFF",
-        stroke: "#A0A0A0",
-        strokeWidth: 0.5,
-        "fill-opacity": 0.5
-      };
-
-      const cellOptOdd = {
-        fill: "#F0F0F0",
-        stroke: "#A0A0A0",
-        strokeWidth: 0.5,
-        "fill-opacity": 0.5
-      };
-
-      const tickOpt = {
-        fill: "#F0F0F0",
-        stroke: "#A0A0A0",
-        strokeWidth: 1,
-        "fill-opacity": 0.5
-      };
-
-      const actionSymbolOpt = {
-        fill: "#00695c",
-        stroke: "#00695c",
-        strokeWidth: 0.5,
-        "fill-opacity": 0.5
-      };
-
-      const txtOpt = {
-        'font-size': 9,
-        'font-family': '"Helvetica", Helvetica, Sans-serif',
-        fill: "#404040"
-      };
-
-      // list all actors that are assigned to an action
-      const actors = [...new Set(actions.map(action => action.actorChosen))];
-
-      // create map of actors and actions on it
-      const actionsOnActor = new Map();
-      for (const action of actions) {
-        const actor = action.actorChosen;
-        if (!actionsOnActor.has(actor)) actionsOnActor.set(actor, []);
-        actionsOnActor.get(actor).push(action);
-      }
-
-      // the base settings
-      const headerHeight = 40;
-      const rowHeight = 25;
-      const labelWidth = 100;
-      const textX = 10;
-      const textY = rowHeight / 2 + 5; // half the row plus half the text size
-
-      const totalWidth = 800;
-      const innerHeight = actors.length * rowHeight;
-      const totalHeight = Math.max(innerHeight + headerHeight, 800);
-
-      // TBD: improve. The actual draw area for the actions is scaled down and translated
-      const drawAreaScale = 0.9;
-      const drawAreaTranslate = 25;
-
-      // the outer paper to draw to
-      const paper = Snap("#gantt");
-      paper.attr({
-        viewBox: [0, 0, totalWidth, totalHeight]
-      });
-
-      // calculate the time span
-      const earliest = Math.min(...actions.map(action => action.start));
-      const latest = Math.max(...actions.map(action => action.end));
-      const span = latest - earliest;
-
-      // determine the timescale resolution
-      let res = {};
-      if ((res.count = Math.floor(span / (1000 * 60 * 60 * 24 * 365))) > 0) {
-        res.unit = 'years';
-      } else if ((res.count = Math.floor(span / (1000 * 60 * 60 * 24 * 30))) > 0) {
-        res.unit = 'months';
-      } else if ((res.count = Math.floor(span / (1000 * 60 * 60 * 24 * 7))) > 0) {
-        res.unit = 'weeks';
-      } else if ((res.count = Math.floor(span / (1000 * 60 * 60 * 24))) > 0) {
-        res.unit = 'days';
-      } else if ((res.count = Math.floor(span / (1000 * 60 * 60))) > 0) {
-        res.unit = 'hours';
-      } else if ((res.count = Math.floor(span / (1000 * 60))) > 0) {
-        res.unit = 'minutes';
-      } else {
-        res.unit = 'seconds';
-        res.count = Math.floor(span / 1000);
-      }
-
-      console.log('resolution is %s %s', res.count, res.unit);
-
-      // the scale for actions
-      const range = totalWidth - labelWidth;
-      const scale = range / span;
-
-      // add the cell to draw time ticks to
-      const headerCell = paper.g();
-      headerCell.append(paper.rect(0, 0, range, headerHeight, 2, 2).attr(cellOptEven));
-      headerCell.transform('translate(' + labelWidth + ' 0)');
-
-      const tickDrawArea = paper.g();
-      headerCell.append(tickDrawArea);
-      tickDrawArea.transform('scale(' + drawAreaScale + ' 1) translate(' + drawAreaTranslate + ' 0)');
-
-      // draw ticks and date text
-      const dateY = headerHeight - 4;
-
-      // iterate 'till we are out of range
-      if (res.unit === 'minutes') {
-
-        let date = new Date(earliest).at({
-          minute: 0,
-          second: 0
-        });
-
-        do {
-
-          let time = date.getTime();
-          if (time >= earliest && time < latest) {
-            const x = (time - earliest) * scale;
-            tickDrawArea.append(paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt));
-            tickDrawArea.append(paper.text(x - 10, dateY, date.toString('mm')).attr(txtOpt));
-          }
-
-          date.add(1).minute();
-
-        } while (date.getTime() <= latest);
-
-      } else if (res.unit === 'hours') {
-
-        let date = new Date(earliest).at({
-          minute: 0,
-          second: 0
-        });
-
-        do {
-
-          let time = date.getTime();
-          if (time >= earliest && time <= latest) {
-            const x = (time - earliest) * scale;
-            tickDrawArea.append(paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt));
-            tickDrawArea.append(paper.text(x - 10, dateY, date.toString('HH:mm')).attr(txtOpt));
-          }
-
-          date.add(1).hour();
-
-        } while (date.getTime() <= latest);
-
-      } else if (res.unit === 'days') {
-
-        let date = new Date(earliest).at({
-          hour: 0,
-          minute: 0,
-          second: 0
-        });
-
-        do {
-
-          let time = date.getTime();
-          if (time >= earliest && time <= latest) {
-            const x = (time - earliest) * scale;
-            tickDrawArea.append(paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt));
-            tickDrawArea.append(paper.text(x - 10, dateY, date.toString('dd.MM')).attr(txtOpt));
-          }
-
-          date.add(1).day();
-
-        } while (date.getTime() <= latest);
-
-      } else if (res.unit === 'weeks') {
-
-        let date = new Date(earliest).at({
-          day: 1,
-          hour: 0,
-          minute: 0
-        });
-
-        do {
-
-          let time = date.getTime();
-          if (time >= earliest && time <= latest) {
-            const x = (time - earliest) * scale;
-            tickDrawArea.append(paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt));
-            tickDrawArea.append(paper.text(x - 10, dateY, date.toString('dd.MM')).attr(txtOpt));
-          }
-
-          date.add(1).week();
-
-        } while (date.getTime() <= latest);
-
-      } else if (res.unit === 'months') {
-
-        let date = new Date(earliest).at({
-          minute: 0,
-          hour: 0,
-          day: 1
-        });
-
-        do {
-
-          let time = date.getTime();
-          if (time >= earliest && time <= latest) {
-            const x = (time - earliest) * scale;
-            tickDrawArea.append(paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt));
-            tickDrawArea.append(paper.text(x - 10, dateY, date.toString('MM.yyyy')).attr(txtOpt));
-          }
-
-          date.add(1).month();
-
-        } while (date.getTime() <= latest);
-
-      }
-
-      // iterate the actors
-      let vShift = headerHeight;
-      let rowIndex = 0;
-
-      for (let actor of actors) {
-
-        let cellOption = rowIndex % 2 ? cellOptEven : cellOptOdd;
-        let actionOnActor = actionsOnActor.get(actor); // array of actions
-
-        // a new row
-        const row = paper.g();
-        row.transform('translate(0 ' + vShift + ')');
-
-        // add the cell with the row label
-        const labelCell = paper.g();
-        labelCell.append(paper.rect(0, 0, labelWidth, rowHeight, 2, 2).attr(cellOption));
-        labelCell.append(paper.text(textX, textY, actor).attr(txtOpt));
-        row.append(labelCell);
-
-        // add the cell to draw actions to
-        const actionCell = paper.g();
-        actionCell.append(paper.rect(0, 0, range, rowHeight, 2, 2).attr(cellOption));
-        actionCell.transform('translate(' + labelWidth + ' 0)');
-        row.append(actionCell);
-
-        // we draw only to an area of the data cell, thus
-        const drawArea = paper.g();
-        drawArea.transform('scale(' + drawAreaScale + ' 1) translate(' + drawAreaTranslate + ' 0)');
-        actionCell.append(drawArea);
-
-        for (let action of actionOnActor) {
-
-          // coordinates (x,y,width, height)
-          const x = (action.start - earliest) * scale;
-          const width = Math.max((action.end - action.start) * scale, 2);
-
-          const actionSymbol = paper.rect(x, 8, width, 9, 2, 2).attr(actionSymbolOpt);
-          actionSymbol.node.source = action;
-
-          const startDate = new Date(action.start).toString('d.M.yyyy HH:mm');
-          const endDate = new Date(action.end).toString('d.M.yyyy HH:mm');
-          const title = Snap.parse('<title>Action: \nName: ' + action.name +
-            '\nStart: ' + startDate + '\nEnd: ' + endDate + '\nPath: ' + action.locator + '</title>');
-          actionSymbol.append(title);
-
-          drawArea.append(actionSymbol);
-
+    window.onload = function () {
+
+        // ----- style options -----
+        const cellOptEven = {fill: "#FFFFFF", stroke: "#A0A0A0", strokeWidth: 0.5, "fill-opacity": 0.5};
+        const cellOptOdd = {fill: "#F0F0F0", stroke: "#A0A0A0", strokeWidth: 0.5, "fill-opacity": 0.5};
+        const tickOpt = {fill: "#F0F0F0", stroke: "#A0A0A0", strokeWidth: 1, "fill-opacity": 0.5};
+        const actionSymbolOpt = {fill: "#00695c", stroke: "#00695c", strokeWidth: 0.5, "fill-opacity": 0.5};
+        const txtOpt = {'font-size': 9, 'font-family': '"Helvetica", Helvetica, Sans-serif', fill: "#404040"};
+
+        // ----- layout constants -----
+        const headerHeight = 40;
+        const rowHeight = 25;
+        const labelWidth = 100;
+        const textX = 10;
+        const textY = rowHeight / 2 + 5;
+        const totalWidth = 800;
+        const drawAreaScale = 0.9; // shrink
+        const drawAreaTranslate = 25; // shift to right
+
+        // ----- time constants (ms) -----
+        const MINUTE = 60 * 1000;
+        const HOUR = 60 * MINUTE;
+        const DAY = 24 * HOUR;
+        const WEEK = 7 * DAY;
+        const MONTH = 30 * DAY;
+        const YEAR = 365 * DAY;
+
+        // ordered largest-to-smallest so we can find the first unit the span exceeds
+        const RESOLUTIONS = [
+            {unit: 'years', ms: YEAR},
+            {unit: 'months', ms: MONTH},
+            {unit: 'weeks', ms: WEEK},
+            {unit: 'days', ms: DAY},
+            {unit: 'hours', ms: HOUR},
+            {unit: 'minutes', ms: MINUTE},
+        ];
+
+        // how to round the start date and step forward, per unit
+        const TICK_CONFIG = {
+            years: {
+                round: d => d.at({month: 0, day: 1, hour: 0, minute: 0, second: 0}),
+                step: d => d.add(1).year(),
+                format: 'yyyy'
+            },
+            months: {round: d => d.at({day: 1, hour: 0, minute: 0}), step: d => d.add(1).month(), format: 'MM.yyyy'},
+            weeks: {round: d => d.at({day: 1, hour: 0, minute: 0}), step: d => d.add(1).week(), format: 'dd.MM'},
+            days: {round: d => d.at({hour: 0, minute: 0, second: 0}), step: d => d.add(1).day(), format: 'dd.MM'},
+            hours: {round: d => d.at({minute: 0, second: 0}), step: d => d.add(1).hour(), format: 'HH:mm'},
+            minutes: {round: d => d.at({second: 0}), step: d => d.add(1).minute(), format: 'mm'},
+        };
+
+        refresh();
+
+        // get fresh data from the server
+        function refresh() {
+            const xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                if (this.readyState === 4 && this.status === 200) {
+                    render(JSON.parse(this.responseText));
+                }
+            };
+            xhttp.open("GET", "/api/actions", true);
+            xhttp.setRequestHeader("Content-type", "application/json");
+            xhttp.send();
         }
 
-        vShift += rowHeight;
-        rowIndex += 1;
-      }
+        // find the time unit to use for labeling the Gantt chart's axis —
+        // largest unit that gives at least 1 whole tick over the given time span.
+        function getResolution(span) {
+            for (const {unit, ms} of RESOLUTIONS) {
+                if (span >= ms) return {unit};
+            }
+            return {unit: 'seconds', count: Math.floor(span / 1000)};
+        }
+
+
+        // draw the tick lines and labels
+        function drawTicks(paper, tickDrawArea, res, earliest, latest, scale, dateY, innerHeight) {
+
+            const config = TICK_CONFIG[res.unit];
+            if (!config) return; // 'seconds' spans too short to tick
+
+            const drawTick = date => {
+                const x = (date.getTime() - earliest) * scale;
+                tickDrawArea.append(paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt));
+                tickDrawArea.append(paper.text(x - 10, dateY, date.toString(config.format)).attr(txtOpt));
+            };
+
+            let date = config.round(new Date(earliest));
+
+            for (; date.getTime() <= latest; config.step(date)) {
+                if (date.getTime() >= earliest) drawTick(date);
+            }
+        }
+
+
+        function render(actions) {
+
+            // unique actors, and a map of actor -> their actions
+            const actors = [...new Set(actions.map(a => a.actorChosen))];
+            const actionsOnActor = new Map();
+            for (const action of actions) {
+                const actor = action.actorChosen;
+                if (!actionsOnActor.has(actor)) actionsOnActor.set(actor, []);
+                actionsOnActor.get(actor).push(action);
+            }
+
+            const innerHeight = actors.length * rowHeight;
+            const totalHeight = Math.max(innerHeight + headerHeight, 800);
+
+            const paper = Snap("#gantt");
+            paper.attr({viewBox: [0, 0, totalWidth, totalHeight]});
+
+            // earliest and latest time used in actions
+            const earliest = Math.min(...actions.map(a => a.start));
+            const latest = Math.max(...actions.map(a => a.end));
+            const span = latest - earliest;
+
+            const res = getResolution(span);
+            console.log('resolution is %s', res.unit);
+
+            const range = totalWidth - labelWidth;
+            const scale = range / span;
+
+            // header background
+            const headerCell = paper.g();
+            headerCell.append(paper.rect(0, 0, range, headerHeight, 2, 2).attr(cellOptEven));
+            headerCell.transform(`translate(${labelWidth} 0)`);
+
+            // area to draw tick lines to
+            const tickDrawArea = paper.g();
+            headerCell.append(tickDrawArea);
+            tickDrawArea.transform(`scale(${drawAreaScale} 1) translate(${drawAreaTranslate} 0)`);
+
+            const dateY = headerHeight - 4;
+            drawTicks(paper, tickDrawArea, res, earliest, latest, scale, dateY, innerHeight);
+
+            // rows: one per actor
+            let vShift = headerHeight;
+            actors.forEach((actor, rowIndex) => {
+
+                const cellOption = rowIndex % 2 ? cellOptEven : cellOptOdd;
+                const actorActions = actionsOnActor.get(actor);
+
+                const row = paper.g();
+                row.transform(`translate(0 ${vShift})`);
+
+                const labelCell = paper.g();
+                labelCell.append(paper.rect(0, 0, labelWidth, rowHeight, 2, 2).attr(cellOption));
+                labelCell.append(paper.text(textX, textY, actor).attr(txtOpt));
+                row.append(labelCell);
+
+                const actionCell = paper.g();
+                actionCell.append(paper.rect(0, 0, range, rowHeight, 2, 2).attr(cellOption));
+                actionCell.transform(`translate(${labelWidth} 0)`);
+                row.append(actionCell);
+
+                const drawArea = paper.g();
+                drawArea.transform(`scale(${drawAreaScale} 1) translate(${drawAreaTranslate} 0)`);
+                actionCell.append(drawArea);
+
+                for (const action of actorActions) {
+                    const x = (action.start - earliest) * scale;
+                    const width = Math.max((action.end - action.start) * scale, 2);
+
+                    const actionSymbol = paper.rect(x, 8, width, 9, 2, 2).attr(actionSymbolOpt);
+                    actionSymbol.node.source = action;
+
+                    const startDate = new Date(action.start).toString('d.M.yyyy HH:mm');
+                    const endDate = new Date(action.end).toString('d.M.yyyy HH:mm');
+                    const title = Snap.parse(
+                        `<title>Action: \nName: ${action.name}\nStart: ${startDate}\nEnd: ${endDate}\nPath: ${action.locator}</title>`
+                    );
+                    actionSymbol.append(title);
+                    drawArea.append(actionSymbol);
+                }
+
+                vShift += rowHeight;
+            });
+        }
     };
-  };
 </script>
 
 </html>
