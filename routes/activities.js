@@ -1,9 +1,6 @@
 const express = require('express');
 const model = require('../lib/model');
 
-const url = require('url');
-const querystring = require('querystring');
-
 const router = express.Router();
 
 
