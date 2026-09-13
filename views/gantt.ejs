@@ -29,7 +29,7 @@
         const labelWidth = 100;
         const textX = 10;
         const textY = rowHeight / 2 + 5;
-        const totalWidth = 1024; //800;
+        const totalWidth = 800; //800;
 
         // ----- time constants (ms) -----
         const MINUTE = 60 * 1000;
@@ -161,7 +161,8 @@
         function render(actions) {
 
             // unique actors, and a map of actor -> their actions
-            const actors = [...new Set(actions.map(a => a.actorChosen))];
+            const actors = [...new Set(actions.map(action => action.actorChosen))];
+
             const actionsOnActor = new Map();
             for (const action of actions) {
                 const actor = action.actorChosen;
@@ -198,7 +199,7 @@
             actors.forEach((actor, rowIndex) => {
 
                 const cellOption = rowIndex % 2 ? cellOptEven : cellOptOdd;
-                const actorActions = actionsOnActor.get(actor);
+                const actions = actionsOnActor.get(actor);
 
                 const row = paper.g();
                 row.transform(`translate(0 ${vShift})`);
@@ -212,15 +213,24 @@
                 actionCell.append(paper.rect(0, 0, range, rowHeight, 2, 2).attr(cellOption));
                 actionCell.transform(`translate(${labelWidth} 0)`);
 
-                // TODO scale svgX down by totalWidth/bounding box
+                // click listener with time projection
                 actionCell.node.addEventListener('click', function(event) {
-                    const rect = actionCell.node.getBoundingClientRect(); // Get SVG element position
+
+                    // Get SVG element position
+                    const rect = actionCell.node.getBoundingClientRect();
+
+                    // position relative to cell
                     const svgX = event.clientX - rect.left;
                     const svgY = event.clientY - rect.top;
                     console.log(`Click position relative to cell: x=${svgX}, y=${svgY}`);
-                    const time = xToTime(svgX, earliest, scale);
-                    console.log('clicked at x=%s, time=%s', svgX, new Date(time));
 
+                    // scale click position
+                    const svgWidth = totalWidth - labelWidth;
+                    const svgScale = svgWidth/rect.width;
+
+                    // convert to time
+                    const time = xToTime(svgX*svgScale, earliest, scale);
+                    console.log('clicked at x=%s, time=%s', svgX, new Date(time));
                 });
 
                 row.append(actionCell);
@@ -228,7 +238,7 @@
                 const drawArea = paper.g();
                 actionCell.append(drawArea);
 
-                for (const action of actorActions) {
+                for (const action of actions) {
 
                     const x = timeToX(action.start, earliest, scale);
                     const width = Math.max((action.end - action.start) * scale, 2);
@@ -251,4 +261,6 @@
     };
 </script>
 
+<!--JavaScript at end of body for optimized loading-->
+<script type="text/javascript" src="javascripts/materialize.min.js"></script>
 </html>

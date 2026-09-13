@@ -27,8 +27,8 @@ router.get('/actions', function(req, res, next) {
 
   const actions = [];
   for (let activity of activities){
-    const childs = activity.actions();
-    for (let child of childs)
+    const children = activity.actions();
+    for (let child of children)
       actions.push(child);
   }
 
