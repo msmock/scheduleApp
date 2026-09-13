@@ -117,6 +117,20 @@
 
 
         /**
+         * Convert the time (ms) in the x-Position in the tickDrawArea.
+         */
+        function timeToX(time, earliest, scale) {
+            return (time - earliest) * scale;
+        }
+
+        /**
+         * Convert the x-Position in the tickDrawArea to the time.
+         */
+        function xToTime(x, earliest, scale) {
+            return x / scale + earliest;
+        }
+
+        /**
          * draw the tick lines and labels
          */
         function drawTicks(paper, tickDrawArea, res, earliest, latest, scale, dateY, innerHeight) {
@@ -125,9 +139,16 @@
             if (!config) return; // 'seconds' spans too short to tick
 
             const drawTick = date => {
-                const x = (date.getTime() - earliest) * scale;
-                tickDrawArea.append(paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt));
-                tickDrawArea.append(paper.text(x - 10, dateY, date.toString(config.format)).attr(txtOpt));
+
+                const x = timeToX(date.getTime(), earliest, scale);
+
+                const line = paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt);
+                tickDrawArea.append(line);
+
+                const label = paper.text(x - 10, dateY, date.toString(config.format)).attr(txtOpt);
+                const title = Snap.parse(`<title>${date.toString('dddd, d.M.yyyy HH:mm')}</title>`);
+                label.append(title);
+                tickDrawArea.append(label);
             };
 
             let date = config.round(new Date(earliest));
@@ -201,6 +222,7 @@
                 actionCell.append(drawArea);
 
                 for (const action of actorActions) {
+
                     const x = (action.start - earliest) * scale;
                     const width = Math.max((action.end - action.start) * scale, 2);
 
