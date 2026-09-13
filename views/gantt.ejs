@@ -29,9 +29,7 @@
         const labelWidth = 100;
         const textX = 10;
         const textY = rowHeight / 2 + 5;
-        const totalWidth = 800;
-        const drawAreaScale = 0.9; // shrink
-        const drawAreaTranslate = 25; // shift to right
+        const totalWidth = 1024; //800;
 
         // ----- time constants (ms) -----
         const MINUTE = 60 * 1000;
@@ -115,7 +113,6 @@
             };
         }
 
-
         /**
          * Convert the time (ms) in the x-Position in the tickDrawArea.
          */
@@ -192,7 +189,6 @@
             // area to draw tick lines to
             const tickDrawArea = paper.g();
             headerCell.append(tickDrawArea);
-            // tickDrawArea.transform(`scale(${drawAreaScale} 1) translate(${drawAreaTranslate} 0)`);
 
             const dateY = headerHeight - 4;
             drawTicks(paper, tickDrawArea, res, earliest, latest, scale, dateY, innerHeight);
@@ -215,15 +211,26 @@
                 const actionCell = paper.g();
                 actionCell.append(paper.rect(0, 0, range, rowHeight, 2, 2).attr(cellOption));
                 actionCell.transform(`translate(${labelWidth} 0)`);
+
+                // TODO scale svgX down by totalWidth/bounding box
+                actionCell.node.addEventListener('click', function(event) {
+                    const rect = actionCell.node.getBoundingClientRect(); // Get SVG element position
+                    const svgX = event.clientX - rect.left;
+                    const svgY = event.clientY - rect.top;
+                    console.log(`Click position relative to cell: x=${svgX}, y=${svgY}`);
+                    const time = xToTime(svgX, earliest, scale);
+                    console.log('clicked at x=%s, time=%s', svgX, new Date(time));
+
+                });
+
                 row.append(actionCell);
 
                 const drawArea = paper.g();
-                // drawArea.transform(`scale(${drawAreaScale} 1) translate(${drawAreaTranslate} 0)`);
                 actionCell.append(drawArea);
 
                 for (const action of actorActions) {
 
-                    const x = (action.start - earliest) * scale;
+                    const x = timeToX(action.start, earliest, scale);
                     const width = Math.max((action.end - action.start) * scale, 2);
 
                     const actionSymbol = paper.rect(x, 8, width, 9, 2, 2).attr(actionSymbolOpt);
