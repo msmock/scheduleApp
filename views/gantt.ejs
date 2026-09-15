@@ -14,6 +14,7 @@
 <script src="../javascripts/date.js"></script>
 
 <script>
+
     window.onload = function () {
 
         // ----- style options -----
@@ -54,14 +55,42 @@
             years: {
                 round: d => d.at({month: 0, day: 1, hour: 0, minute: 0, second: 0}),
                 step: d => d.add(1).year(),
-                format: 'yyyy'
+                format: 'yyyy',
+                duration: 365*24*60*60*1000
             },
-            months: {round: d => d.at({day: 1, hour: 0, minute: 0}), step: d => d.add(1).month(), format: 'MM.yyyy'},
-            weeks: {round: d => d.at({day: 1, hour: 0, minute: 0}), step: d => d.add(1).week(), format: 'dd.MM'},
-            days: {round: d => d.at({hour: 0, minute: 0, second: 0}), step: d => d.add(1).day(), format: 'dd.MM'},
-            hours: {round: d => d.at({minute: 0, second: 0}), step: d => d.add(1).hour(), format: 'HH:mm'},
-            minutes: {round: d => d.at({second: 0}), step: d => d.add(1).minute(), format: 'mm'},
+            months: {
+                round: d => d.at({day: 1, hour: 0, minute: 0}),
+                step: d => d.add(1).month(),
+                format: 'MM.yyyy',
+                duration: 30*24*60*60*1000
+            },
+            weeks: {
+                round: d => d.at({day: 1, hour: 0, minute: 0}),
+                step: d => d.add(1).week(),
+                format: 'dd.MM',
+                duration: 7*24*60*60*1000
+            },
+            days: {
+                round: d => d.at({hour: 0, minute: 0, second: 0}),
+                step: d => d.add(1).day(),
+                format: 'dd.MM',
+                duration: 24*60*60*1000
+            },
+            hours: {
+                round: d => d.at({minute: 0, second: 0}),
+                step: d => d.add(1).hour(),
+                format: 'HH:mm',
+                duration: 60*60*1000
+            },
+            minutes: {
+                round: d => d.at({second: 0}),
+                step: d => d.add(1).minute(),
+                format: 'mm',
+                duration: 60*1000
+            },
         };
+
+        let timeRange;
 
         refresh();
 
@@ -81,9 +110,9 @@
         }
 
         /**
-        * find the time unit to use for labeling the Gantt chart's axis —
-        * largest unit that gives at least 1 whole tick over the given time span.
-        **/
+         * find the time unit to use for labeling the Gantt chart's axis —
+         * largest unit that gives at least 1 whole tick over the given time span.
+         **/
         function getResolution(span) {
             for (const {unit, ms} of RESOLUTIONS) {
                 if (span >= ms) return {unit};
@@ -95,21 +124,24 @@
          * get the earliest and latest time to be shown in the gantt
          * from the earliest and latest times of the values.
          *
-         * @returns {{earliest: number, latest: number, span: number}}
+         * @returns {{earliest: number, latest: number, span: number, duration: number}}
          */
         function getTimeRange(actions) {
 
+            // first set the range to the start and end of the activities
             const earliest = Math.min(...actions.map(a => a.start));
             const latest = Math.max(...actions.map(a => a.end));
             const span = latest - earliest;
 
-            // show a little padding beyond the actual action times
-            const padding = 0.05 * span;
+            // calculate the resolution from the data above
+            const resolution = getResolution(span);
+            const config = TICK_CONFIG[resolution.unit];
 
+            // return a range with a little more space at the edge
             return {
-                earliest: earliest - padding,
-                latest: latest + padding,
-                span: span * 1.1, // padded on both sides, so span grows by 2 × 5%
+                earliest: earliest - config.duration,
+                latest: latest + config.duration,
+                span: span + 2*config.duration, // padded on both sides, so span grows by 2 × 5%
             };
         }
 
@@ -130,14 +162,14 @@
         /**
          * draw the tick lines and labels
          */
-        function drawTicks(paper, tickDrawArea, res, earliest, latest, scale, dateY, innerHeight) {
+        function drawTicks(paper, tickDrawArea, resolution, timeRange, scale, dateY, innerHeight) {
 
-            const config = TICK_CONFIG[res.unit];
+            const config = TICK_CONFIG[resolution.unit];
             if (!config) return; // 'seconds' spans too short to tick
 
             const drawTick = date => {
 
-                const x = timeToX(date.getTime(), earliest, scale);
+                const x = timeToX(date.getTime(), timeRange.earliest, scale);
 
                 const line = paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt);
                 tickDrawArea.append(line);
@@ -148,10 +180,10 @@
                 tickDrawArea.append(label);
             };
 
-            let date = config.round(new Date(earliest));
+            let date = config.round(new Date(timeRange.earliest));
 
-            for (; date.getTime() <= latest; config.step(date)) {
-                if (date.getTime() >= earliest) drawTick(date);
+            for (; date.getTime() <= timeRange.latest; config.step(date)) {
+                if (date.getTime() >= timeRange.earliest) drawTick(date);
             }
         }
 
@@ -160,11 +192,18 @@
          */
         function render(actions) {
 
+            // keep a reference to the full list before it gets shadowed below
+            const allActions = actions;
+
+            // clear any previous drawing before redrawing
+            const paper = Snap("#gantt");
+            paper.clear();
+
             // unique actors, and a map of actor -> their actions
-            const actors = [...new Set(actions.map(action => action.actorChosen))];
+            const actors = [...new Set(allActions.map(action => action.actorChosen))];
 
             const actionsOnActor = new Map();
-            for (const action of actions) {
+            for (const action of allActions) {
                 const actor = action.actorChosen;
                 if (!actionsOnActor.has(actor)) actionsOnActor.set(actor, []);
                 actionsOnActor.get(actor).push(action);
@@ -172,15 +211,16 @@
 
             const innerHeight = actors.length * rowHeight;
             const totalHeight = Math.max(innerHeight + headerHeight, 800);
-
-            const paper = Snap("#gantt");
             paper.attr({viewBox: [0, 0, totalWidth, totalHeight]});
 
-            let {earliest, latest, span} = getTimeRange(actions);
+            // get the time range to display
+            if (!timeRange) {
+                timeRange = getTimeRange(actions);
+            }
 
-            const res = getResolution(span);
+            const resolution = getResolution(timeRange.span);
             const range = totalWidth - labelWidth;
-            const scale = range / span;
+            const scale = range / timeRange.span;
 
             // header background
             const headerCell = paper.g();
@@ -192,7 +232,7 @@
             headerCell.append(tickDrawArea);
 
             const dateY = headerHeight - 4;
-            drawTicks(paper, tickDrawArea, res, earliest, latest, scale, dateY, innerHeight);
+            drawTicks(paper, tickDrawArea, resolution, timeRange, scale, dateY, innerHeight);
 
             // rows: one per actor
             let vShift = headerHeight;
@@ -214,23 +254,34 @@
                 actionCell.transform(`translate(${labelWidth} 0)`);
 
                 // click listener with time projection
-                actionCell.node.addEventListener('click', function(event) {
+                actionCell.node.addEventListener('click', function (evt) {
 
                     // Get SVG element position
                     const rect = actionCell.node.getBoundingClientRect();
 
                     // position relative to cell
-                    const svgX = event.clientX - rect.left;
-                    const svgY = event.clientY - rect.top;
+                    const svgX = evt.clientX - rect.left;
+                    const svgY = evt.clientY - rect.top;
                     console.log(`Click position relative to cell: x=${svgX}, y=${svgY}`);
 
                     // scale click position
                     const svgWidth = totalWidth - labelWidth;
-                    const svgScale = svgWidth/rect.width;
+                    const svgScale = svgWidth / rect.width;
 
                     // convert to time
-                    const time = xToTime(svgX*svgScale, earliest, scale);
+                    const time = xToTime(svgX * svgScale, timeRange.earliest, scale);
                     console.log('clicked at x=%s, time=%s', svgX, new Date(time));
+                });
+
+                // add double click listener
+                actionCell.node.addEventListener("dblclick", function (evt) {
+                    console.log('double clicked at x=%s y=%s', evt.clientX, evt.clientY);
+                    timeRange = {
+                        earliest: timeRange.earliest - 1000 * 60 * 60,
+                        latest: timeRange.latest + 1000 * 60 * 60,
+                        span: timeRange.span * 1.1, // padded on both sides, so span grows by 2 × 5%
+                    };
+                    render(allActions);
                 });
 
                 row.append(actionCell);
@@ -240,7 +291,7 @@
 
                 for (const action of actions) {
 
-                    const x = timeToX(action.start, earliest, scale);
+                    const x = timeToX(action.start, timeRange.earliest, scale);
                     const width = Math.max((action.end - action.start) * scale, 2);
 
                     const actionSymbol = paper.rect(x, 8, width, 9, 2, 2).attr(actionSymbolOpt);
