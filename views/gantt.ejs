@@ -406,9 +406,7 @@
                     if (rawEndX <= 0 || rawX >= range) continue;
 
                     // clamp start/end to the draw area so the symbol is always
-                    // drawn inside it, even if the action's real start/end lies
-                    // outside the currently visible time range
-                    const x = Math.max(0, rawX);
+                    // clipped to the draw area
                     const endX = Math.min(range, rawEndX);
                     const width = Math.max(endX - x, 2);
 
