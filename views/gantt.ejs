@@ -24,6 +24,8 @@
         const tickOpt = {fill: "#F0F0F0", stroke: "#A0A0A0", strokeWidth: 1, "fill-opacity": 0.5};
         const actionSymbolOpt = {fill: "#00695c", stroke: "#00695c", strokeWidth: 0.5, "fill-opacity": 0.5};
         const txtOpt = {'font-size': 9, 'font-family': '"Helvetica", Helvetica, Sans-serif', fill: "#404040"};
+        const btnOpt = {fill: "#A0A0A0", stroke: "#A0A0A0", strokeWidth: 0.5, "fill-opacity": 0.85};
+        const btnTxtOpt = {'font-size': 13, 'font-family': '"Helvetica", Helvetica, Sans-serif', fill: "#FFFFFF", 'text-anchor': 'middle'};
 
         // ----- layout constants -----
         const headerHeight = 40;
@@ -147,27 +149,6 @@
         }
 
         /**
-         * get the earliest and latest time to be shown in the gantt
-         * from the earliest and latest times of the values.
-         *
-         * @returns {{earliest: number, latest: number, span: number, duration: number}}
-         */
-        function getZoomOutRange(initialTimeRange) {
-
-            // calculate the resolution from the data above
-            const resolution = getResolution(timeRange.span);
-            const config = TICK_CONFIG[resolution.unit];
-
-            // return a range with a little more space at the edge
-            // depending on the resolution
-            return {
-                earliest: initialTimeRange.earliest - config.duration,
-                latest: initialTimeRange.latest + config.duration,
-                span: initialTimeRange.span + 2 * config.duration, // padded on both sides, so span grows by 2 × 5%
-            };
-        }
-
-        /**
          * Convert the time (ms) in the x-Position in the tickDrawArea.
          */
         function timeToX(time, earliest, scale) {
@@ -207,6 +188,104 @@
             for (; date.getTime() <= timeRange.latest; config.step(date)) {
                 if (date.getTime() >= timeRange.earliest) drawTick(date);
             }
+        }
+
+        /**
+         * get the earliest and latest time to be shown in the gantt
+         * from the earliest and latest times of the values.
+         *
+         * @returns {{earliest: number, latest: number, span: number, duration: number}}
+         */
+        function getZoomOutRange(initialTimeRange) {
+
+            // calculate the resolution from the data above
+            const resolution = getResolution(timeRange.span);
+            const config = TICK_CONFIG[resolution.unit];
+
+            // return a range with a little more space at the edge
+            // depending on the resolution
+            return {
+                earliest: initialTimeRange.earliest - 2 * config.duration,
+                latest: initialTimeRange.latest + 2 * config.duration,
+                span: initialTimeRange.span + 4 * config.duration, // padded on both sides, so span grows by 2 × 5%
+            };
+        }
+
+        /**
+         * add a zoom out button into the footer cell.
+         */
+        function drawZoomOutButton(paper, footerCell, range, y, actions) {
+
+            const btnSize = 20;
+            const btnPadding = -5;
+            const btnX = range * 0.5 - btnSize - btnPadding;
+            const btnY = y + (footerHeight - btnSize) / 2;
+
+            const zoomOutBtn = paper.g();
+
+            const btnRect = paper.rect(btnX, btnY, btnSize, btnSize, 3, 3).attr(btnOpt);
+            const btnLabel = paper.text(btnX + btnSize / 2, btnY + btnSize / 2 + 4, "−").attr(btnTxtOpt);
+
+            zoomOutBtn.append(btnRect);
+            zoomOutBtn.append(btnLabel);
+
+            const title = Snap.parse(`<title>Zoom out</title>`);
+            zoomOutBtn.append(title);
+
+            zoomOutBtn.node.style.cursor = "pointer";
+            zoomOutBtn.node.addEventListener("click", function (evt) {
+                evt.stopPropagation();
+                timeRange = getZoomOutRange(timeRange);
+                render(actions);
+            });
+
+            footerCell.append(zoomOutBtn);
+        }
+
+        function getZoomInRange(initialTimeRange) {
+
+            // calculate the resolution from the data above
+            const resolution = getResolution(timeRange.span);
+            const config = TICK_CONFIG[resolution.unit];
+
+            // return a range with a little more space at the edge
+            // depending on the resolution
+            return {
+                earliest: initialTimeRange.earliest + 2 * config.duration,
+                latest: initialTimeRange.latest - 2 * config.duration,
+                span: initialTimeRange.span - 4 * config.duration, // padded on both sides, so span grows by 2 × 5%
+            };
+        }
+
+        /**
+         * add a zoom in button into the footer cell.
+         */
+        function drawZoomInButton(paper, footerCell, range, y, actions) {
+
+            const btnSize = 20;
+            const btnPadding = -5;
+            const btnX = range * 0.5 + btnSize + btnPadding;
+            const btnY = y + (footerHeight - btnSize) / 2;
+
+            const zoomOutBtn = paper.g();
+
+            const btnRect = paper.rect(btnX, btnY, btnSize, btnSize, 3, 3).attr(btnOpt);
+            const btnLabel = paper.text(btnX + btnSize / 2, btnY + btnSize / 2 + 4, "+").attr(btnTxtOpt);
+
+            zoomOutBtn.append(btnRect);
+            zoomOutBtn.append(btnLabel);
+
+            const title = Snap.parse(`<title>Zoom in</title>`);
+            zoomOutBtn.append(title);
+
+            zoomOutBtn.node.style.cursor = "pointer";
+            zoomOutBtn.node.addEventListener("click", function (evt) {
+                evt.stopPropagation();
+                timeRange = getZoomInRange(timeRange);
+                render(actions);
+            });
+
+            footerCell.append(zoomOutBtn);
         }
 
         /**
@@ -254,6 +333,12 @@
             const y = headerHeight + (actors.length) * rowHeight;
             footerCell.append(paper.rect(0, y , range, footerHeight, 2, 2).attr(cellOptEven));
             footerCell.transform(`translate(${labelWidth} 0)`);
+
+            // zoom out button, drawn into the footer cell
+            drawZoomOutButton(paper, footerCell, range, y, allActions);
+
+            // zoom into button, drawn into the footer cell
+            drawZoomInButton(paper, footerCell, range, y, allActions);
 
             // area to draw tick lines to
             const tickDrawArea = paper.g();
