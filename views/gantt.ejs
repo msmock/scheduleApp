@@ -388,8 +388,7 @@
 
                 // add double click listener to zoom out
                 actionCell.node.addEventListener("dblclick", function (evt) {
-                    console.log('double clicked at x=%s y=%s', evt.clientX, evt.clientY);
-                    timeRange = getZoomOutRange(timeRange);
+                    timeRange = null;
                     render(allActions);
                 });
 
@@ -400,8 +399,18 @@
 
                 for (const action of actions) {
 
-                    const x = timeToX(action.start, timeRange.earliest, scale);
-                    const width = Math.max((action.end - action.start) * scale, 2);
+                    const rawX = timeToX(action.start, timeRange.earliest, scale);
+                    const rawEndX = timeToX(action.end, timeRange.earliest, scale);
+
+                    // skip actions that fall entirely outside the draw area
+                    if (rawEndX <= 0 || rawX >= range) continue;
+
+                    // clamp start/end to the draw area so the symbol is always
+                    // drawn inside it, even if the action's real start/end lies
+                    // outside the currently visible time range
+                    const x = Math.max(0, rawX);
+                    const endX = Math.min(range, rawEndX);
+                    const width = Math.max(endX - x, 2);
 
                     const actionSymbol = paper.rect(x, 8, width, 9, 2, 2).attr(actionSymbolOpt);
                     actionSymbol.node.source = action;
