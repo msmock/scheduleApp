@@ -407,6 +407,7 @@
 
                     // clamp start/end to the draw area so the symbol is always
                     // clipped to the draw area
+                    const x = Math.max(0, rawX);
                     const endX = Math.min(range, rawEndX);
                     const width = Math.max(endX - x, 2);
 
