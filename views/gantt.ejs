@@ -25,7 +25,12 @@
         const actionSymbolOpt = {fill: "#00695c", stroke: "#00695c", strokeWidth: 0.5, "fill-opacity": 0.5};
         const txtOpt = {'font-size': 9, 'font-family': '"Helvetica", Helvetica, Sans-serif', fill: "#404040"};
         const btnOpt = {fill: "#A0A0A0", stroke: "#A0A0A0", strokeWidth: 0.5, "fill-opacity": 0.85};
-        const btnTxtOpt = {'font-size': 13, 'font-family': '"Helvetica", Helvetica, Sans-serif', fill: "#FFFFFF", 'text-anchor': 'middle'};
+        const btnTxtOpt = {
+            'font-size': 13,
+            'font-family': '"Helvetica", Helvetica, Sans-serif',
+            fill: "#FFFFFF",
+            'text-anchor': 'middle'
+        };
 
         // ----- layout constants -----
         const headerHeight = 40;
@@ -37,7 +42,8 @@
         const totalWidth = 800; //800;
 
         // ----- time constants (ms) -----
-        const MINUTE = 60 * 1000;
+        const SECOND = 1000;
+        const MINUTE = 60 * SECOND;
         const HOUR = 60 * MINUTE;
         const DAY = 24 * HOUR;
         const WEEK = 7 * DAY;
@@ -52,6 +58,7 @@
             {unit: 'days', ms: DAY},
             {unit: 'hours', ms: HOUR},
             {unit: 'minutes', ms: MINUTE},
+            {unit: 'seconds', ms: SECOND},
         ];
 
         // how to round the start date and step forward, per unit
@@ -60,41 +67,58 @@
                 round: d => d.at({month: 0, day: 1, hour: 0, minute: 0, second: 0}),
                 step: d => d.add(1).year(),
                 format: 'yyyy',
-                duration: 365 * 24 * 60 * 60 * 1000
+                duration: YEAR
             },
             months: {
                 round: d => d.at({day: 1, hour: 0, minute: 0}),
                 step: d => d.add(1).month(),
                 format: 'MM.yyyy',
-                duration: 30 * 24 * 60 * 60 * 1000
+                duration: MONTH
             },
             weeks: {
                 round: d => d.at({day: 1, hour: 0, minute: 0}),
                 step: d => d.add(1).week(),
                 format: 'dd.MM',
-                duration: 7 * 24 * 60 * 60 * 1000
+                duration: WEEK
             },
             days: {
                 round: d => d.at({hour: 0, minute: 0, second: 0}),
                 step: d => d.add(1).day(),
                 format: 'dd.MM',
-                duration: 24 * 60 * 60 * 1000
+                duration: DAY
             },
             hours: {
                 round: d => d.at({minute: 0, second: 0}),
                 step: d => d.add(1).hour(),
                 format: 'HH:mm',
-                duration: 60 * 60 * 1000
+                duration: HOUR
             },
             minutes: {
                 round: d => d.at({second: 0}),
                 step: d => d.add(1).minute(),
                 format: 'mm',
-                duration: 60 * 1000
+                duration: MINUTE
+            },
+            seconds: {
+                round: d => d.at({milliseconds: 0}),
+                step: d => d.add(1).second(),
+                format: 'mm',
+                duration: SECOND
             },
         };
 
         let timeRange;
+
+        // pan
+        let isPanning = false;
+        let panStartX = 0;
+        let panStartRange = null;
+
+        // stop panning even if the mouseup happens outside any actionCell
+        window.addEventListener('mouseup', function () {
+            isPanning = false;
+            panStartRange = null;
+        });
 
         refresh();
 
@@ -119,7 +143,10 @@
          **/
         function getResolution(span) {
             for (const {unit, ms} of RESOLUTIONS) {
-                if (span >= ms) return {unit};
+                if (span >= ms) {
+                    console.log(unit);
+                    return {unit};
+                }
             }
             return {unit: 'seconds', count: Math.floor(span / 1000)};
         }
@@ -164,8 +191,16 @@
 
         /**
          * draw the tick lines and labels
+         *
+         * @param paper the paper to draw to
+         * @param tickDrawArea area to drag ticks to
+         * @param resolution the current time resolution
+         * @param timeRange the time range
+         * @param scale the scale factor
+         * @param y vertical position
+         * @param innerHeight
          */
-        function drawTicks(paper, tickDrawArea, resolution, timeRange, scale, dateY, innerHeight) {
+        function drawTicks(paper, tickDrawArea, resolution, timeRange, scale, y, innerHeight) {
 
             const config = TICK_CONFIG[resolution.unit];
             if (!config) return; // 'seconds' spans too short to tick
@@ -177,7 +212,7 @@
                 const line = paper.line(x, headerHeight, x, innerHeight + headerHeight).attr(tickOpt);
                 tickDrawArea.append(line);
 
-                const label = paper.text(x - 10, dateY, date.toString(config.format)).attr(txtOpt);
+                const label = paper.text(x - 10, y, date.toString(config.format)).attr(txtOpt);
                 const title = Snap.parse(`<title>${date.toString('dddd, d.M.yyyy HH:mm')}</title>`);
                 label.append(title);
                 tickDrawArea.append(label);
@@ -191,10 +226,10 @@
         }
 
         /**
-         * get the earliest and latest time to be shown in the gantt
-         * from the earliest and latest times of the values.
+         * change time range to zoom in
          *
-         * @returns {{earliest: number, latest: number, span: number, duration: number}}
+         * @param initialTimeRange
+         * @returns {{earliest, latest, span}}
          */
         function getZoomOutRange(initialTimeRange) {
 
@@ -213,6 +248,12 @@
 
         /**
          * add a zoom out button into the footer cell.
+         *
+         * @param paper the draw paper
+         * @param footerCell the cell to draw the button to
+         * @param range the range of the cell for positioning
+         * @param y position
+         * @param actions required to call render to refresh
          */
         function drawZoomOutButton(paper, footerCell, range, y, actions) {
 
@@ -242,6 +283,12 @@
             footerCell.append(zoomOutBtn);
         }
 
+        /**
+         * change time range to zoom out
+         *
+         * @param initialTimeRange
+         * @returns {{earliest, latest, span}}
+         */
         function getZoomInRange(initialTimeRange) {
 
             // calculate the resolution from the data above
@@ -259,6 +306,12 @@
 
         /**
          * add a zoom in button into the footer cell.
+         *
+         * @param paper the draw paper
+         * @param footerCell the cell to draw the button to
+         * @param range the range of the cell for positioning
+         * @param y position
+         * @param actions required to call render to refresh
          */
         function drawZoomInButton(paper, footerCell, range, y, actions) {
 
@@ -286,6 +339,104 @@
             });
 
             footerCell.append(zoomOutBtn);
+        }
+
+        /**
+         * shift (pan) a time range left/right by a fixed amount of time,
+         * keeping its span (zoom level) unchanged.
+         */
+        function getPannedRange(baseRange, deltaTime) {
+            return {
+                earliest: baseRange.earliest + deltaTime,
+                latest: baseRange.latest + deltaTime,
+                span: baseRange.span,
+            };
+        }
+
+        /**
+         * wire up drag-to-pan on an actionCell: mousedown starts the drag and
+         * remembers the time range at that moment, mousemove (while dragging)
+         * shifts the gantt sheet left/right to follow the mouse, mouseup/mouseleave
+         * ends the drag.
+         */
+        function attachPanListeners(actionCell, range, scale, allActions) {
+
+            actionCell.node.style.cursor = "grab";
+
+            actionCell.node.addEventListener('mousedown', function (evt) {
+                isPanning = true;
+                panStartX = evt.clientX;
+                panStartRange = {earliest: timeRange.earliest, latest: timeRange.latest, span: timeRange.span};
+                actionCell.node.style.cursor = "grabbing";
+                evt.preventDefault();
+            });
+
+            actionCell.node.addEventListener('mousemove', function (evt) {
+                if (!isPanning || !panStartRange) return;
+
+                // convert the mouse movement in screen pixels into svg units,
+                // accounting for the viewBox scale, then into a time delta
+                const rect = actionCell.node.getBoundingClientRect();
+                const svgScale = range / rect.width;
+                const deltaPx = evt.clientX - panStartX;
+                const deltaSvg = deltaPx * svgScale;
+                const deltaTime = deltaSvg / scale;
+
+                // dragging right (positive deltaTime) should reveal earlier
+                // actions, i.e. move the visible range backward in time
+                timeRange = getPannedRange(panStartRange, -deltaTime);
+
+                render(allActions);
+            });
+
+            actionCell.node.addEventListener('mouseup', function () {
+                isPanning = false;
+                panStartRange = null;
+                actionCell.node.style.cursor = "grab";
+            });
+
+            actionCell.node.addEventListener('mouseleave', function () {
+                if (isPanning) {
+                    isPanning = false;
+                    panStartRange = null;
+                }
+                actionCell.node.style.cursor = "grab";
+            });
+        }
+
+        /**
+         * if clicked, log the time to console
+         */
+        function attachClickListener(actionCell, scale) {
+
+            actionCell.node.addEventListener('click', function (evt) {
+
+                // Get SVG element position
+                const rect = actionCell.node.getBoundingClientRect();
+
+                // position relative to cell
+                const svgX = evt.clientX - rect.left;
+                const svgY = evt.clientY - rect.top;
+                console.log(`Click position relative to cell: x=${svgX}, y=${svgY}`);
+
+                // scale click position
+                const svgWidth = totalWidth - labelWidth;
+                const svgScale = svgWidth / rect.width;
+
+                // convert to time
+                const time = xToTime(svgX * svgScale, timeRange.earliest, scale);
+                console.log('clicked at x=%s, time=%s', svgX, new Date(time));
+            });
+        }
+
+        /**
+         * reset zoom when double click
+         */
+        function attachDoubleClickListener(actionCell, allActions) {
+            actionCell.node.addEventListener("dblclick", function (evt) {
+                timeRange = null;
+                render(allActions);
+            });
         }
 
         /**
@@ -331,19 +482,15 @@
             // footer cell
             const footerCell = paper.g();
             const y = headerHeight + (actors.length) * rowHeight;
-            footerCell.append(paper.rect(0, y , range, footerHeight, 2, 2).attr(cellOptEven));
+            footerCell.append(paper.rect(0, y, range, footerHeight, 2, 2).attr(cellOptEven));
             footerCell.transform(`translate(${labelWidth} 0)`);
 
-            // zoom out button, drawn into the footer cell
             drawZoomOutButton(paper, footerCell, range, y, allActions);
-
-            // zoom into button, drawn into the footer cell
             drawZoomInButton(paper, footerCell, range, y, allActions);
 
-            // area to draw tick lines to
+            // draw tick lines to
             const tickDrawArea = paper.g();
             headerCell.append(tickDrawArea);
-
             const dateY = headerHeight - 4;
             drawTicks(paper, tickDrawArea, resolution, timeRange, scale, dateY, innerHeight);
 
@@ -366,31 +513,9 @@
                 actionCell.append(paper.rect(0, 0, range, rowHeight, 2, 2).attr(cellOption));
                 actionCell.transform(`translate(${labelWidth} 0)`);
 
-                // click listener with time projection
-                actionCell.node.addEventListener('click', function (evt) {
-
-                    // Get SVG element position
-                    const rect = actionCell.node.getBoundingClientRect();
-
-                    // position relative to cell
-                    const svgX = evt.clientX - rect.left;
-                    const svgY = evt.clientY - rect.top;
-                    console.log(`Click position relative to cell: x=${svgX}, y=${svgY}`);
-
-                    // scale click position
-                    const svgWidth = totalWidth - labelWidth;
-                    const svgScale = svgWidth / rect.width;
-
-                    // convert to time
-                    const time = xToTime(svgX * svgScale, timeRange.earliest, scale);
-                    console.log('clicked at x=%s, time=%s', svgX, new Date(time));
-                });
-
-                // add double click listener to zoom out
-                actionCell.node.addEventListener("dblclick", function (evt) {
-                    timeRange = null;
-                    render(allActions);
-                });
+                attachClickListener(actionCell, scale);
+                attachDoubleClickListener(actionCell, allActions);
+                attachPanListeners(actionCell, range, scale, allActions);
 
                 row.append(actionCell);
 
@@ -406,7 +531,8 @@
                     if (rawEndX <= 0 || rawX >= range) continue;
 
                     // clamp start/end to the draw area so the symbol is always
-                    // clipped to the draw area
+                    // drawn inside it, even if the action's real start/end lies
+                    // outside the currently visible time range
                     const x = Math.max(0, rawX);
                     const endX = Math.min(range, rawEndX);
                     const width = Math.max(endX - x, 2);
