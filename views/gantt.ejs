@@ -52,7 +52,9 @@
             {unit: 'weeks', ms: WEEK},
             {unit: 'days', ms: DAY},
             {unit: 'hours', ms: HOUR},
+            {unit: 'fifteenMinutes', ms: 15 * MINUTE},
             {unit: 'minutes', ms: MINUTE},
+            {unit: 'fifteenSeconds', ms: 15 * SECOND},
             {unit: 'seconds', ms: SECOND}
         ];
 
@@ -90,17 +92,29 @@
                 format: 'HH:mm',
                 duration: HOUR
             },
+            fifteenMinutes: {
+                round: d => d.at({minute: d.getMinutes() - (d.getMinutes() % 15), second: 0, millisecond: 0}),
+                step: d => d.add(15).minutes(),
+                format: 'HH:mm',
+                duration: 15*MINUTE
+            },
             minutes: {
                 round: d => d.at({second: 0, millisecond: 0}),
                 step: d => d.add(1).minute(),
-                format: 'mm',
+                format: 'HH:mm',
                 duration: MINUTE
+            },
+            fifteenSeconds: {
+                round: d => d.at({second: d.getSeconds() - (d.getSeconds() % 15), millisecond: 0}),
+                step: d => d.add(15).second(),
+                format: 'HH:mm:ss',
+                duration: 15*SECOND
             },
             seconds: {
                 round: d => d.at({millisecond: 0}),
                 step: d => d.add(1).second(),
                 format: 'ss',
-                duration: 1
+                duration: SECOND
             },
         };
 
@@ -175,9 +189,6 @@
          */
         function getZoomOutRange(initialTimeRange) {
 
-            const resolution = getResolution(timeRange.span);
-            console.log(resolution);
-
             const span = initialTimeRange.latest - initialTimeRange.earliest;
             const gap = span * 0.3;
 
@@ -192,9 +203,6 @@
          * get the new time range for zoom in
          */
         function getZoomInRange(initialTimeRange) {
-
-            const resolution = getResolution(timeRange.span);
-            console.log(resolution);
 
             const span = initialTimeRange.latest - initialTimeRange.earliest;
             const gap = span * 0.2;
@@ -410,6 +418,8 @@
             }
 
             const resolution = getResolution(timeRange.span);
+            console.log("resolution unit is %s", resolution.unit);
+
             const range = totalWidth - labelWidth;
             const scale = range / timeRange.span;
 
