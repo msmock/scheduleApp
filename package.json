@@ -1,6 +1,7 @@
 {
   "name": "scheduleApp",
   "version": "0.6.0",
+  "description": "A minimal app to test the schedule libraries. See suite.js files in test folder for tests.",
   "private": true,
   "scripts": {
     "start": "node ./bin/www"
