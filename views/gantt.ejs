@@ -51,6 +51,7 @@
             {unit: 'months', ms: MONTH},
             {unit: 'weeks', ms: WEEK},
             {unit: 'days', ms: DAY},
+            {unit: 'twelveHours', ms: 12*HOUR},
             {unit: 'hours', ms: HOUR},
             {unit: 'fifteenMinutes', ms: 15 * MINUTE},
             {unit: 'fiveMinutes', ms: 5 * MINUTE},
@@ -87,6 +88,18 @@
                 step: d => d.add(1).day(),
                 format: 'dd.MM',
                 duration: DAY
+            },
+            twelveHours: {
+                round: d => d.at({hour: d.getHours() - (d.getHours() % 12), minute:0, second: 0, millisecond: 0}),
+                step: d => d.add(12).hour(),
+                format: 'HH:mm',
+                duration: 12*HOUR
+            },
+            sixHours: {
+                round: d => d.at({hour: d.getHours() - (d.getHours() % 6), minute:0, second: 0, millisecond: 0}),
+                step: d => d.add(6).hour(),
+                format: 'HH:mm',
+                duration: 6*HOUR
             },
             hours: {
                 round: d => d.at({minute: 0, second: 0}),

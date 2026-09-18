@@ -33,11 +33,11 @@
 
         <!-- the date selection -->
         <p>
-            <input id="date" name="date" type="text" class="datepicker"/>
+            <input id="date" name="date" type="text" value="2026-12-01"/>
             <label for="date">Date</label>
         </p>
         <p>
-            <input id="time" name="time" type="text" class="timepicker"/>
+            <input id="time" name="time" type="text" value="18:00:05"/>
             <label for="time">Time</label>
         </p>
 
@@ -47,28 +47,6 @@
     <p></p>
 </div>
 </body>
-
-<script>
-    const dateOptions = {
-        defaultDate: new Date(),
-        setDefaultDate: true,
-        format: 'yyyy-mm-dd'
-    };
-
-    document.addEventListener('DOMContentLoaded', function () {
-        var elems = document.querySelectorAll('.datepicker');
-        var instances = M.Datepicker.init(elems, dateOptions);
-    });
-
-    const timeOptions = {
-        twelveHour: false
-    };
-
-    document.addEventListener('DOMContentLoaded', function () {
-        var elems = document.querySelectorAll('.timepicker');
-        var instances = M.Timepicker.init(elems, timeOptions);
-    });
-</script>
 
 <!--JavaScript at end of body for optimized loading-->
 <script type="text/javascript" src="javascripts/materialize.min.js"></script>
