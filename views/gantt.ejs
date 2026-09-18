@@ -53,8 +53,10 @@
             {unit: 'days', ms: DAY},
             {unit: 'hours', ms: HOUR},
             {unit: 'fifteenMinutes', ms: 15 * MINUTE},
+            {unit: 'fiveMinutes', ms: 5 * MINUTE},
             {unit: 'minutes', ms: MINUTE},
             {unit: 'fifteenSeconds', ms: 15 * SECOND},
+            {unit: 'fiveSeconds', ms: 5 * SECOND},
             {unit: 'seconds', ms: SECOND}
         ];
 
@@ -98,6 +100,12 @@
                 format: 'HH:mm',
                 duration: 15*MINUTE
             },
+            fiveMinutes: {
+                round: d => d.at({minute: d.getMinutes() - (d.getMinutes() % 5), second: 0, millisecond: 0}),
+                step: d => d.add(5).minutes(),
+                format: 'HH:mm',
+                duration: 5*MINUTE
+            },
             minutes: {
                 round: d => d.at({second: 0, millisecond: 0}),
                 step: d => d.add(1).minute(),
@@ -110,10 +118,16 @@
                 format: 'HH:mm:ss',
                 duration: 15*SECOND
             },
+            fiveSeconds: {
+                round: d => d.at({second: d.getSeconds() - (d.getSeconds() % 5), millisecond: 0}),
+                step: d => d.add(5).second(),
+                format: 'HH:mm:ss',
+                duration: 5*SECOND
+            },
             seconds: {
                 round: d => d.at({millisecond: 0}),
                 step: d => d.add(1).second(),
-                format: 'ss',
+                format: 'HH:mm:ss',
                 duration: SECOND
             },
         };
@@ -151,11 +165,14 @@
 
         /**
          * find the time unit to use for labeling the Gantt chart's axis —
-         * largest unit that gives at least 1 whole tick over the given time span.
+         * largest unit that gives at least 3 whole tick over the given time span.
          **/
         function getResolution(span) {
+
+            const minNumberOfTicks = 2;
+
             for (const {unit, ms} of RESOLUTIONS) {
-                if (span >= ms) return {unit};
+                if (span >= minNumberOfTicks * ms) return {unit};
             }
             return {unit: 'seconds', count: Math.floor(span / 1000)};
         }
